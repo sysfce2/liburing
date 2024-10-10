@@ -27,6 +27,10 @@ ifdef CONFIG_HAVE_ARRAY_BOUNDS
 	XCFLAGS += -Warray-bounds=0
 endif
 
+ifeq ($(CONFIG_USE_SANITIZER),y)
+	XCFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls
+endif
+
 CXXFLAGS ?= $(CFLAGS)
 override CFLAGS += $(XCFLAGS) -DLIBURING_BUILD_TEST
 override CXXFLAGS += $(XCFLAGS) -std=c++11 -DLIBURING_BUILD_TEST
@@ -120,6 +124,7 @@ test_srcs := \
 	link.c \
 	link_drain.c \
 	link-timeout.c \
+	linked-defer-close.c \
 	madvise.c \
 	min-timeout.c \
 	min-timeout-wait.c \
@@ -131,7 +136,6 @@ test_srcs := \
 	multicqes_drain.c \
 	napi-test.c \
 	no-mmap-inval.c \
-	nolibc.c \
 	nop-all-sizes.c \
 	nop.c \
 	ooo-file-unreg.c \
@@ -160,6 +164,7 @@ test_srcs := \
 	read-before-exit.c \
 	read-mshot.c \
 	read-mshot-empty.c \
+	read-mshot-stdin.c \
 	read-write.c \
 	recv-msgall.c \
 	recv-msgall-stream.c \
@@ -167,6 +172,7 @@ test_srcs := \
 	reg-fd-only.c \
 	reg-hint.c \
 	reg-reg-ring.c \
+	regbuf-clone.c \
 	regbuf-merge.c \
 	register-restrictions.c \
 	rename.c \
@@ -227,8 +233,18 @@ test_srcs := \
 	xattr.c \
 	# EOL
 
+# Please keep this list sorted alphabetically.
+asan_test_srcs := \
+	xfail_prep_link_timeout_out_of_scope.c \
+	xfail_register_buffers_out_of_scope.c \
+	# EOL
+
 all_targets :=
 include ../Makefile.quiet
+
+ifeq ($(CONFIG_NOLIBC),y)
+	test_srcs += nolibc.c
+endif
 
 ifdef CONFIG_HAVE_STATX
 	test_srcs += statx.c
@@ -250,7 +266,15 @@ test_targets := $(patsubst %,%.t,$(test_targets))
 all_targets += $(test_targets)
 helpers = helpers.o
 
-all: $(test_targets)
+ifeq ($(CONFIG_USE_SANITIZER),y)
+	asan_test_targets := $(patsubst %.c,%,$(asan_test_srcs))
+	asan_test_targets := $(patsubst %.cc,%,$(asan_test_targets))
+	asan_run_test_targets := $(patsubst %,%.run_test,$(asan_test_targets))
+	asan_test_targets := $(patsubst %,%.t,$(asan_test_targets))
+	all_targets += $(asan_test_targets)
+endif
+
+all: $(test_targets) $(asan_test_targets)
 
 helpers.o: helpers.c
 	$(QUIET_CC)$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ -c $<
@@ -287,10 +311,10 @@ clean:
 	@rm -rf output/
 
 runtests: all
-	@./runtests.sh $(test_targets)
+	@./runtests.sh $(test_targets) $(asan_test_targets)
 
 runtests-loop: all
-	@./runtests-loop.sh $(test_targets)
+	@./runtests-loop.sh $(test_targets) $(asan_test_targets)
 
 %.run_test: %.t
 	@./runtests-quiet.sh $<

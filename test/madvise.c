@@ -76,6 +76,8 @@ static int test_madvise(struct io_uring *ring, const char *filename)
 
 	fd = open(filename, O_RDONLY);
 	if (fd < 0) {
+		if (errno == EACCES || errno == EPERM)
+			return T_EXIT_SKIP;
 		perror("open");
 		return 1;
 	}
@@ -119,9 +121,12 @@ static int test_madvise(struct io_uring *ring, const char *filename)
 		return 1;
 
 	if (cached_read < uncached_read &&
-	    cached_read2 < uncached_read)
+	    cached_read2 < uncached_read) {
+		free(buf);
 		return 0;
+	}
 
+	free(buf);
 	return 2;
 }
 
@@ -146,6 +151,8 @@ int main(int argc, char *argv[])
 	good = bad = 0;
 	for (i = 0; i < LOOPS; i++) {
 		ret = test_madvise(&ring, fname);
+		if (ret == T_EXIT_SKIP)
+			goto skip;
 		if (ret == 1) {
 			fprintf(stderr, "test_madvise failed\n");
 			goto err;
@@ -168,4 +175,8 @@ err:
 	if (fname != argv[1])
 		unlink(fname);
 	return T_EXIT_FAIL;
+skip:
+	if (fname != argv[1])
+		unlink(fname);
+	return T_EXIT_SKIP;
 }

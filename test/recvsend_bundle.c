@@ -114,6 +114,9 @@ static int recv_prep(struct io_uring *ring, struct recv_data *rd, int *sock)
 
 		pthread_barrier_wait(&rd->connect);
 
+		if (rd->abort)
+			goto err;
+
 		socklen = sizeof(saddr);
 		use_fd = accept(sockfd, (struct sockaddr *)&saddr, &socklen);
 		if (use_fd < 0) {
@@ -294,7 +297,8 @@ static void *recv_fn(void *data)
 	if (!classic_buffers) {
 		br = io_uring_setup_buf_ring(&ring, RECV_BIDS, RECV_BGID, 0, &ret);
 		if (!br) {
-			fprintf(stderr, "failed setting up recv ring %d\n", ret);
+			if (ret != -EINVAL)
+				fprintf(stderr, "failed setting up recv ring %d\n", ret);
 			goto err;
 		}
 
@@ -325,6 +329,7 @@ static void *recv_fn(void *data)
 	close(rd->accept_fd);
 	io_uring_queue_exit(&ring);
 err:
+	free(buf);
 	return (void *)(intptr_t)ret;
 }
 
@@ -442,7 +447,9 @@ static int do_send(struct recv_data *rd)
 		return 1;
 	}
 	if (!(p.features & IORING_FEAT_RECVSEND_BUNDLE)) {
+		rd->abort = 1;
 		no_send_mshot = 1;
+		pthread_barrier_wait(&rd->connect);
 		return 0;
 	}
 
@@ -592,8 +599,12 @@ static int test(int backlog, unsigned int max_sends, int *to_eagain,
 	}
 
 	ret = do_send(&rd);
-	if (no_send_mshot)
+	if (no_send_mshot) {
+		fprintf(stderr, "no_send_mshot, aborting (ignore other errors)\n");
+		rd.abort = 1;
+		pthread_join(recv_thread, &retval);
 		return 0;
+	}
 
 	if (ret)
 		return ret;
@@ -698,7 +709,7 @@ static int test_tcp(void)
 	use_tcp = 1;
 	ret = run_tests(false);
 	if (ret == T_EXIT_FAIL)
-		fprintf(stderr, "TCP test case failed\n");
+		fprintf(stderr, "TCP test case (classic=%d) failed\n", classic_buffers);
 	return ret;
 }
 
@@ -710,7 +721,7 @@ static int test_udp(void)
 	use_port++;
 	ret = run_tests(true);
 	if (ret == T_EXIT_FAIL)
-		fprintf(stderr, "UDP test case failed\n");
+		fprintf(stderr, "UDP test case (classic=%d) failed\n", classic_buffers);
 	return ret;
 }
 
