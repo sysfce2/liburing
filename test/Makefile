@@ -157,6 +157,7 @@ test_srcs := \
 	io-wq-unused-exit.c \
 	iowait.c \
 	kallsyms.c \
+	large-resize.c \
 	lfs-openat.c \
 	lfs-openat-write.c \
 	link.c \
