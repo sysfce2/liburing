@@ -201,6 +201,7 @@ test_srcs := \
 	poll-many.c \
 	poll-mshot-overflow.c \
 	poll-mshot-update.c \
+	poll-mshot-wake.c \
 	poll-race.c \
 	poll-race-mshot.c \
 	poll-ring.c \
