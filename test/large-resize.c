@@ -455,20 +455,18 @@ int main(void)
 		return T_EXIT_SKIP;
 	}
 
-	ret = test_sqe_mixed_resize();
-	if (ret == T_EXIT_FAIL) {
-		fprintf(stderr, "sqe_mixed_resize failed\n");
-		return T_EXIT_FAIL;
-	} else if (ret == T_EXIT_SKIP) {
-		return T_EXIT_SKIP;
-	}
-
 	ret = test_ring_wrapping();
 	if (ret == T_EXIT_FAIL) {
 		fprintf(stderr, "ring_wrapping failed\n");
 		return T_EXIT_FAIL;
 	} else if (ret == T_EXIT_SKIP) {
 		return T_EXIT_SKIP;
+	}
+
+	ret = test_sqe_mixed_resize();
+	if (ret == T_EXIT_FAIL) {
+		fprintf(stderr, "sqe_mixed_resize failed\n");
+		return T_EXIT_FAIL;
 	}
 
 	return T_EXIT_PASS;
