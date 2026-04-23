@@ -26,7 +26,7 @@ is setup to use as input the file descriptor
 .I fd_in
 and as output the file descriptor
 .I fd_out
-duplicating
+duplicating up to
 .I nbytes
 bytes worth of data.
 .I splice_flags
@@ -34,9 +34,9 @@ are modifier flags for the operation. See
 .BR tee (2)
 for the generic splice flags.
 
-If the
+If
 .I fd_out
-descriptor,
+is a direct descriptor,
 .B IOSQE_FIXED_FILE
 can be set in the SQE to indicate that. For the input file, the io_uring
 specific

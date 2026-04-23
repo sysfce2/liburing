@@ -39,9 +39,9 @@ are modifier flags for the operation. See
 .BR splice (2)
 for the generic splice flags.
 
-If the
+If
 .I fd_out
-descriptor,
+is a direct descriptor,
 .B IOSQE_FIXED_FILE
 can be set in the SQE to indicate that. For the input file, the io_uring
 specific
