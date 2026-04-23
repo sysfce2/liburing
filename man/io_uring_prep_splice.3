@@ -118,3 +118,9 @@ refers to a pipe, the splice operation can still fail with
 .B EINVAL
 if one of the fd doesn't explicitly support splice operation, e.g. reading from
 terminal is unsupported from kernel 5.7 to 5.11.
+
+Despite accepting an unsigned number of bytes, this function can transfer at most
+INT_MAX bytes per call (the maximum for the underlying syscall interface).
+In practice, limits as low as 65536 have been observed (just like with
+.BR splice (2)
+itself).
