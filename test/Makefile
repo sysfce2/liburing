@@ -385,6 +385,7 @@ CLANG_BPF_SYS_INCLUDES ?= $(shell $(CLANG) -v -E - </dev/null 2>&1 \
 $(BPF_OUTPUT)/%.bpf.o: $(BPF_PROGS_DIR)/%.bpf.c $(wildcard %.h)
 	mkdir -p ${BPF_OUTPUT}
 	$(QUIET_CC)$(CLANG) -g -O2 -target bpf \
+		     -I../src/include/ \
 		     -I$(BPF_OUTPUT) $(CLANG_BPF_SYS_INCLUDES) \
 		     -Wno-missing-declarations \
 		     -c $(filter %.c,$^) -o $(patsubst %.bpf.o,%.tmp.bpf.o,$@) -mcpu=v4
